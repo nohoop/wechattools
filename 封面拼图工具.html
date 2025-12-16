@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!-- 
+    Copyright (c) 2024 CNHUBEI
+    Author: witsky
+-->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>封面拼图工具 v1.1 - 最终版</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f7; --canvas-bg: #ffffff; --canvas-border-color: #d1d1d6;
+            --placeholder-color: #f5f5f7; --placeholder-hover-color: #e9e9ed;
+            --text-primary: #1d1d1f; --text-secondary: #6e6e73; --accent-blue: #007aff;
+            --accent-blue-hover: #0071e3; --canvas-width: 720px; --canvas-height: 400px;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0; padding: 40px 20px; background-color: var(--bg-color);
+            display: flex; flex-direction: column; align-items: center; gap: 24px; color: var(--text-primary);
+        }
+        .main-title { font-size: 28px; font-weight: 600; text-align: center; }
+        #canvas-wrapper {
+            width: var(--canvas-width); height: var(--canvas-height); max-width: 95vw;
+            aspect-ratio: 900 / 500; background-color: var(--canvas-bg);
+            border: 1px solid var(--canvas-border-color); border-radius: 18px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); overflow: hidden; display: flex;
+            user-select: none; transition: width 0.3s, height 0.3s; position: relative;
+        }
+        .image-half { position: relative; width: 50%; height: 100%; overflow: hidden; }
+        .image-half:first-child { border-right: 1px dashed var(--canvas-border-color); }
+        .image-half img {
+            position: absolute; top: 50%; left: 50%; max-width: none; cursor: grab;
+            opacity: 0; transition: opacity 0.4s; will-change: transform;
+        }
+        .image-half.has-image img { opacity: 1; }
+        .placeholder { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; cursor: pointer; background-color: var(--placeholder-color); opacity: 1; transition: opacity 0.3s, background-color 0.3s; }
+        .placeholder:hover { background-color: var(--placeholder-hover-color); }
+        .image-half.has-image .placeholder { opacity: 0; pointer-events: none; }
+        .placeholder .icon-wrapper { width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--text-secondary); display: flex; justify-content: center; align-items: center; transition: transform 0.2s; }
+        .placeholder:hover .icon-wrapper { transform: scale(1.05); }
+        .placeholder svg { width: 20px; height: 20px; color: var(--text-secondary); }
+        .placeholder .text { font-size: 14px; color: var(--text-secondary); }
+        .context-controls { position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; opacity: 0; transform: translateY(-10px); transition: all 0.3s; pointer-events: none; }
+        .image-half.has-image .context-controls { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .icon-button { width: 32px; height: 32px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); border: none; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #gradient-overlay { position: absolute; bottom: 0; left: 0; right: 0; height: 60%; background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%); z-index: 10; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        #canvas-wrapper.gradient-active #gradient-overlay { opacity: 1; }
+        .global-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; width: 100%; max-width: var(--canvas-width); transition: max-width 0.3s; }
+        .button { padding: 12px 20px; border: none; border-radius: 12px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.25s; background-color: #fff; color: var(--text-primary); box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.04); opacity: 1; flex-grow: 1; }
+        .button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+        .button:not(:disabled):hover { background-color: #f0f0f0; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+        .btn-primary { background-color: var(--accent-blue); color: #fff; }
+        .btn-primary:not(:disabled):hover { background-color: var(--accent-blue-hover); }
+        #export-btn .spinner, #export-btn .check { display: none; }
+        #export-btn.loading .text, #export-btn.success .text { display: none; }
+        #export-btn.loading .spinner, #export-btn.success .check { display: inline-block; }
+        .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.5); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .toggle-control { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px; border-radius: 10px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        input[type="file"] { display: none; }
+        #crop-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        #crop-modal.visible { opacity: 1; pointer-events: auto; }
+        #crop-image-wrapper { position: relative; max-width: 90vw; max-height: 75vh; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+        #crop-image { display: block; max-width: 100%; max-height: 100%; user-select: none; }
+        #crop-box { position: absolute; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); border: 1.5px solid #fff; cursor: move; }
+        .crop-handle { position: absolute; width: 12px; height: 12px; background: #fff; border: 2px solid var(--accent-blue); border-radius: 50%; }
+        .handle-nw { top: -7px; left: -7px; cursor: nwse-resize; }
+        .handle-ne { top: -7px; right: -7px; cursor: nesw-resize; }
+        .handle-sw { bottom: -7px; left: -7px; cursor: nesw-resize; }
+        .handle-se { bottom: -7px; right: -7px; cursor: nwse-resize; }
+        .crop-buttons button { box-shadow: none; border-radius: 10px; }
+        .page-footer { margin-top: 40px; text-align: center; }
+        .page-footer p { font-size: 12px; color: var(--text-secondary); }
+        @media (max-width: 768px) {
+            body { padding: 20px 10px; gap: 20px; } .main-title { font-size: 22px; }
+            #canvas-wrapper { width: 95vw; height: auto; } .global-controls { flex-direction: column; max-width: 95vw; }
+            .context-controls { top: 8px; right: 8px; } .icon-button { width: 36px; height: 36px; }
+        }
+    </style>
+</head>
+<body>
+    <h1 class="main-title">封面拼图工具</h1>
+    <div id="canvas-wrapper">
+        <div id="left-half" class="image-half"><img id="left-img"><div id="left-placeholder" class="placeholder"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg></div><span class="text">上传</span></div><div class="context-controls"><button id="crop-left-btn" class="icon-button" title="裁剪图片"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path></svg></button><button id="remove-left-btn" class="icon-button" title="移除图片"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="rou
