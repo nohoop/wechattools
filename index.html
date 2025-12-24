@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>wechattools · 微信小工具</title>
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="wechat/common.css" />
+    <style>
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 20px;
+        letter-spacing: -0.3px;
+      }
+
+      .sub {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      @media (min-width: 860px) {
+        .cards {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .tool {
+        padding: 16px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .tool h2 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: -0.2px;
+      }
+
+      .tool p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .meta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 9px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(118, 118, 128, 0.08);
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        appearance: none;
+        border: 1px solid var(--border);
+        background: rgba(118, 118, 128, 0.12);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 650;
+        font-size: 12px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn.primary {
+        border-color: rgba(0, 122, 255, 0.35);
+        background: rgba(0, 122, 255, 0.14);
+      }
+
+      .btn:focus-visible {
+        outline: 3px solid rgba(0, 122, 255, 0.35);
+        outline-offset: 3px;
+      }
+
+      .footer {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .footer a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <div>
+          <h1>wechattools</h1>
+          <p class="sub">一些面向微信场景的小工具。后续会持续新增，统一从这里进入。</p>
+        </div>
+        <div class="actions">
+          <a class="btn" href="https://github.com/nohoop/wechattools" target="_blank" rel="noreferrer">GitHub</a>
+        </div>
+      </header>
+
+      <section class="cards" aria-label="工具列表">
+        <article class="card tool">
+          <div class="meta">
+            <span class="badge">公众号封面</span>
+            <span class="badge">竖图 → 横图</span>
+            <span class="badge">自动补背景</span>
+          </div>
+          <h2>封面竖图转横图</h2>
+          <p>上传竖图人物照，自动补齐左右背景，并在底部压暗，方便叠加标题文字。</p>
+          <div class="actions">
+            <a class="btn primary" href="wechat/cover1/banner.html">打开工具</a>
+          </div>
+        </article>
+
+        <article class="card tool">
+          <div class="meta">
+            <span class="badge">公众号封面</span>
+            <span class="badge">拼接</span>
+            <span class="badge">双图合成</span>
+          </div>
+          <h2>封面拼图工具</h2>
+          <p>把两张图按左右两半拼成一个封面图，可裁剪、拖动定位并导出。</p>
+          <div class="actions">
+            <a class="btn primary" href="wechat/cover2/index.html">打开工具</a>
+          </div>
+        </article>
+      </section>
+
+      <p class="footer">
+        建议在手机端或微信内置浏览器使用以获得接近的预览效果。
+      </p>
+    </main>
+  </body>
+</html>
+
