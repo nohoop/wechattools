@@ -202,6 +202,16 @@
         overflow: hidden;
         border: 1px solid var(--border);
         background: rgba(118, 118, 128, 0.08);
+        width: min(380px, 100%);
+        margin: 0 auto;
+        position: relative;
+      }
+      .canvas-wrap.is-empty {
+        cursor: pointer;
+      }
+      .canvas-wrap:focus-visible {
+        outline: 3px solid rgba(0, 122, 255, 0.35);
+        outline-offset: 3px;
       }
       canvas {
         display: block;
@@ -258,7 +268,7 @@
             <div class="pill">尺寸：<strong id="sizeText">900×383</strong></div>
             <div class="pill">拖动人物调整位置（按住 Shift 微调）</div>
           </div>
-          <div class="canvas-wrap" id="dropZone" aria-label="drop zone">
+          <div class="canvas-wrap is-empty" id="dropZone" role="button" tabindex="0" aria-label="预览区：点击上传图片，或拖拽图片到这里">
             <canvas id="c" width="900" height="383" aria-label="preview canvas"></canvas>
           </div>
           <div class="status" id="status">请上传一张竖图（也支持拖拽到画布）。</div>
@@ -357,6 +367,7 @@
         offsetY: 0,
         subjectRect: null,
         dragging: false,
+        justDragged: false,
         dragOffsetX: 0,
         dragOffsetY: 0,
       };
@@ -608,6 +619,11 @@
       function updateUI() {
         els.btnDownload.disabled = !state.image;
         els.bgColorField.style.display = state.style === "solid" ? "grid" : "none";
+        els.dropZone.classList.toggle("is-empty", !state.image);
+        els.dropZone.setAttribute(
+          "aria-label",
+          state.image ? "预览区：拖动人物调整位置（按住 Shift 微调）" : "预览区：点击上传图片，或拖拽图片到这里"
+        );
         els.status.textContent = state.image
           ? "拖动人物调整位置，满意后点击下载。"
           : "请上传一张竖图（也支持拖拽到画布）。";
@@ -720,6 +736,7 @@
       function onPointerUp(e) {
         if (!state.dragging) return;
         state.dragging = false;
+        state.justDragged = true;
         try {
           els.canvas.releasePointerCapture(e.pointerId);
         } catch {}
@@ -753,6 +770,26 @@
           console.error(err);
           els.status.textContent = "图片加载失败，请换一张试试。";
         }
+      });
+
+      function openFilePicker() {
+        els.file.click();
+      }
+      els.dropZone.addEventListener("click", (e) => {
+        if (state.justDragged) {
+          state.justDragged = false;
+          return;
+        }
+        if (state.image) {
+          const pt = eventToCanvasPoint(e);
+          if (hitTestSubject(pt)) return;
+        }
+        openFilePicker();
+      });
+      els.dropZone.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        openFilePicker();
       });
 
       els.preset.addEventListener("change", () => {
