@@ -7,86 +7,36 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="../common.css" />
     <style>
-      :root {
-        --bg: #f5f5f7;
-        --card: #ffffff;
-        --text: #1d1d1f;
-        --muted: #6e6e73;
-        --border: rgba(0, 0, 0, 0.08);
-        --shadow: 0 14px 40px rgba(0, 0, 0, 0.1);
-        --accent: #007aff;
+      .topbar-inner.tool {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
       }
 
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #0b0b0c;
-          --card: #161618;
-          --text: #f5f5f7;
-          --muted: #a1a1a6;
-          --border: rgba(255, 255, 255, 0.12);
-          --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
-        }
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        height: 100%;
-      }
-      body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Noto Sans SC", sans-serif;
-        background: var(--bg);
+      .tool-title {
+        justify-self: center;
+        font-weight: 750;
+        letter-spacing: -0.35px;
+        font-size: 13px;
         color: var(--text);
       }
 
-      .app {
-        max-width: 1060px;
-        margin: 0 auto;
-        padding: 18px 16px 28px;
-      }
-
-      header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        gap: 12px;
-        margin-bottom: 14px;
-      }
-      h1 {
-        margin: 0;
-        font-size: 18px;
-        letter-spacing: -0.2px;
-      }
-      .sub {
-        margin: 6px 0 0;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.4;
-      }
-
-      .actions {
+      .tool-actions {
+        justify-self: end;
         display: flex;
         gap: 10px;
         align-items: center;
-        flex-wrap: wrap;
-        justify-content: flex-end;
       }
 
-      .actions .btn {
-        border-radius: 999px;
-        padding: 10px 14px;
-        font-size: 13px;
+      .stage-body {
+        padding: 14px;
+        display: grid;
+        gap: 12px;
       }
 
-      .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        box-shadow: var(--shadow);
-        overflow: hidden;
+      .canvas-shell {
+        width: min(760px, 100%);
+        margin: 0 auto;
       }
 
       .toolbar {
@@ -146,48 +96,19 @@
         gap: 6px;
       }
 
-      label {
-        font-size: 12px;
-        color: var(--muted);
-      }
-
-      input[type="file"] {
-        width: 100%;
-      }
-
       select,
       input[type="color"] {
         width: 100%;
         padding: 10px 12px;
-        border-radius: 12px;
+        border-radius: 999px;
         border: 1px solid var(--border);
-        background: transparent;
+        background: rgba(118, 118, 128, 0.10);
         color: var(--text);
         outline: none;
       }
       input[type="color"] {
         padding: 6px;
         height: 42px;
-      }
-
-      .btn {
-        appearance: none;
-        border: 1px solid var(--border);
-        background: rgba(118, 118, 128, 0.12);
-        color: var(--text);
-        padding: 10px 12px;
-        border-radius: 12px;
-        cursor: pointer;
-        font-weight: 650;
-        font-size: 12px;
-      }
-      .btn.primary {
-        border-color: rgba(0, 122, 255, 0.35);
-        background: rgba(0, 122, 255, 0.14);
-      }
-      .btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
       }
 
       .seg {
@@ -209,58 +130,6 @@
       .seg button[aria-pressed="true"] {
         background: rgba(0, 122, 255, 0.14);
         color: var(--text);
-      }
-
-      .preview {
-        padding: 14px;
-        display: grid;
-        gap: 10px;
-      }
-
-      .meta {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .pill {
-        display: inline-flex;
-        gap: 8px;
-        align-items: center;
-        padding: 7px 10px;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        background: rgba(118, 118, 128, 0.08);
-        font-size: 12px;
-        color: var(--muted);
-      }
-      .pill strong {
-        color: var(--text);
-        font-weight: 750;
-      }
-
-      .canvas-wrap {
-        border-radius: 18px;
-        overflow: hidden;
-        border: 1px solid var(--border);
-        background: rgba(118, 118, 128, 0.08);
-        width: min(520px, 100%);
-        margin: 0 auto;
-        position: relative;
-      }
-      .canvas-wrap.is-empty {
-        cursor: pointer;
-      }
-      .canvas-wrap:focus-visible {
-        outline: 3px solid rgba(0, 122, 255, 0.35);
-        outline-offset: 3px;
-      }
-      canvas {
-        display: block;
-        width: 100%;
-        height: auto;
-        touch-action: none;
       }
 
       .status {
@@ -289,29 +158,38 @@
     </style>
   </head>
   <body>
-    <div class="app">
-      <a class="nav-back" href="../../index.html">← 首页</a>
-      <header>
-        <div>
-          <h1>公众号封面图（竖图转横图）</h1>
-          <p class="sub">上传竖图 → 拖动调整 → 下载（默认 2.35:1）。</p>
-        </div>
-        <div class="actions">
+    <header class="topbar">
+      <div class="topbar-inner tool">
+        <a class="brand" href="../../index.html" aria-label="返回首页">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-title">公众号小工具</span>
+        </a>
+        <div class="tool-title">竖图转横图</div>
+        <div class="tool-actions">
           <button class="btn" id="btnUpload" type="button">上传</button>
           <button class="btn primary" id="btnDownload" type="button" disabled>下载</button>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <section class="card">
-        <div class="preview">
-          <div class="meta">
-            <div class="pill">比例：<strong id="sizeText">2.35:1</strong></div>
-            <div class="pill">拖动调整（Shift 微调）</div>
-          </div>
-          <div class="canvas-wrap is-empty" id="dropZone" role="button" tabindex="0" aria-label="预览区：点击上传图片，或拖拽图片到这里">
+    <main class="page">
+      <section class="stage" aria-label="封面预览">
+        <div class="meta-row">
+          <div class="k">比例：<strong id="sizeText">2.35:1</strong></div>
+          <div class="k muted">拖动调整（Shift 微调）</div>
+        </div>
+        <div class="stage-body">
+          <div
+            class="canvas-shell is-empty"
+            id="dropZone"
+            role="button"
+            tabindex="0"
+            data-empty-text="点击上传开始（也支持拖拽）"
+            aria-label="预览区：点击上传图片，或拖拽图片到这里"
+          >
             <canvas id="c" width="900" height="383" aria-label="preview canvas"></canvas>
           </div>
-          <div class="status" id="status">请上传一张竖图（也支持拖拽到画布）。</div>
+          <div class="status" id="status">上传一张竖图后，可拖动人物调整位置。</div>
         </div>
 
         <div class="toolbar">
@@ -378,7 +256,7 @@
           </details>
         </div>
       </section>
-    </div>
+    </main>
 
     <script>
       const els = {
@@ -687,9 +565,7 @@
           "aria-label",
           state.image ? "预览区：拖动人物调整位置（按住 Shift 微调）" : "预览区：点击上传图片，或拖拽图片到这里"
         );
-        els.status.textContent = state.image
-          ? "拖动人物调整位置，满意后点击下载。"
-          : "请上传一张竖图（也支持拖拽到画布）。";
+        els.status.textContent = state.image ? "拖动调整位置，满意后下载。" : "点击上方“上传”，或直接点预览区开始。";
       }
 
       async function loadImageFromFile(file) {

@@ -150,6 +150,106 @@ a {
   font-size: 14px;
 }
 
+.page {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 18px var(--page-pad) 40px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.35px;
+}
+
+.page-subtitle {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(118, 118, 128, 0.04);
+}
+
+.meta-row .k {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.meta-row .k strong {
+  color: var(--text);
+  font-weight: 750;
+}
+
+.stage {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  .stage {
+    background: rgba(22, 22, 24, 0.72);
+  }
+}
+
+.canvas-shell {
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: rgba(118, 118, 128, 0.08);
+  position: relative;
+}
+
+.canvas-shell.is-empty {
+  cursor: pointer;
+}
+
+.canvas-shell.is-empty::after {
+  content: attr(data-empty-text);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  text-align: center;
+  color: rgba(110, 110, 115, 0.92);
+  font-weight: 650;
+  letter-spacing: -0.2px;
+  background: radial-gradient(520px 220px at 50% 30%, rgba(255, 255, 255, 0.25), transparent 60%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .canvas-shell.is-empty::after {
+    color: rgba(161, 161, 166, 0.92);
+    background: radial-gradient(520px 220px at 50% 30%, rgba(255, 255, 255, 0.06), transparent 60%);
+  }
+}
+
+.canvas-shell:focus-visible {
+  outline: 3px solid rgba(0, 122, 255, 0.35);
+  outline-offset: 3px;
+}
+
+.canvas-shell canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+}
+
 .btn {
   appearance: none;
   border: 1px solid rgba(0, 0, 0, 0.12);

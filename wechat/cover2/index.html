@@ -7,39 +7,26 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="../common.css" />
     <style>
-      .page-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        gap: 12px;
-        margin: 0 0 14px;
+      .topbar-inner.tool {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
       }
 
-      .page-head h1 {
-        margin: 0;
-        font-size: 18px;
-        letter-spacing: -0.2px;
+      .tool-title {
+        justify-self: center;
+        font-weight: 750;
+        letter-spacing: -0.35px;
+        font-size: 13px;
+        color: var(--text);
       }
 
-      .sub {
-        margin: 6px 0 0;
-        color: var(--muted);
-        font-size: 12px;
-        line-height: 1.4;
-      }
-
-      .actions {
+      .tool-actions {
+        justify-self: end;
         display: flex;
         gap: 10px;
         align-items: center;
         flex-wrap: wrap;
-        justify-content: flex-end;
-      }
-
-      .actions .btn {
-        border-radius: 999px;
-        padding: 10px 14px;
-        font-size: 13px;
       }
 
       select {
@@ -54,80 +41,20 @@
         font-size: 13px;
       }
 
-      .card {
-        background: rgba(255, 255, 255, 0.78);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        overflow: hidden;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        .card {
-          background: rgba(22, 22, 24, 0.72);
-        }
-      }
-
-      .preview {
+      .stage-body {
         padding: 14px;
         display: grid;
-        gap: 10px;
+        gap: 12px;
       }
 
-      .meta {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-
-      .pill {
-        display: inline-flex;
-        gap: 8px;
-        align-items: center;
-        padding: 7px 10px;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        background: rgba(118, 118, 128, 0.08);
-        font-size: 12px;
-        color: var(--muted);
-      }
-
-      .pill strong {
-        color: var(--text);
-        font-weight: 750;
-      }
-
-      .canvas-wrap {
-        border-radius: 18px;
-        overflow: hidden;
-        border: 1px solid var(--border);
-        background: rgba(118, 118, 128, 0.08);
-        width: min(560px, 100%);
+      .canvas-shell {
+        width: min(860px, 100%);
         margin: 0 auto;
-        position: relative;
         cursor: grab;
       }
 
-      .canvas-wrap.is-empty {
-        cursor: pointer;
-      }
-
-      .canvas-wrap:active {
+      .canvas-shell:active {
         cursor: grabbing;
-      }
-
-      .canvas-wrap:focus-visible {
-        outline: 3px solid rgba(0, 122, 255, 0.35);
-        outline-offset: 3px;
-      }
-
-      canvas {
-        display: block;
-        width: 100%;
-        height: auto;
-        touch-action: none;
       }
 
       .status {
@@ -351,40 +278,41 @@
     </style>
   </head>
   <body>
-    <div class="app">
-      <a class="nav-back" href="../../index.html">← 首页</a>
-
-      <div class="page-head">
-        <div>
-          <h1>封面拼图工具</h1>
-          <p class="sub">上传两张图 → 点击左右半边调整 → 下载（默认 2.35:1）。</p>
-        </div>
-        <div class="actions">
+    <header class="topbar">
+      <div class="topbar-inner tool">
+        <a class="brand" href="../../index.html" aria-label="返回首页">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-title">公众号小工具</span>
+        </a>
+        <div class="tool-title">封面拼图</div>
+        <div class="tool-actions">
           <button class="btn" id="btnUploadLeft" type="button">左图</button>
           <button class="btn" id="btnUploadRight" type="button">右图</button>
           <button class="btn primary" id="btnDownload" type="button" disabled>下载</button>
         </div>
       </div>
+    </header>
 
-      <section class="card" aria-label="拼图画布">
-        <div class="preview">
-          <div class="meta">
-            <div class="pill">比例：<strong id="sizeText">2.35:1</strong></div>
-            <div class="pill">导出：<strong id="pxText">—</strong></div>
-            <div class="pill">拖动调整位置（按住 Shift 微调）</div>
-          </div>
+    <main class="page">
+      <section class="stage" aria-label="拼图画布">
+        <div class="meta-row">
+          <div class="k">比例：<strong id="sizeText">2.35:1</strong> · 导出：<strong id="pxText">—</strong></div>
+          <div class="k muted">点击左右半边选择，拖动调整（Shift 微调）</div>
+        </div>
 
+        <div class="stage-body">
           <div
-            class="canvas-wrap is-empty"
+            class="canvas-shell is-empty"
             id="dropZone"
             role="button"
             tabindex="0"
+            data-empty-text="先上传左图与右图（也支持拖拽）"
             aria-label="预览区：点击上传左右两张图，或拖拽图片到这里"
           >
             <canvas id="c" width="900" height="500" aria-label="preview canvas"></canvas>
           </div>
 
-          <div class="status" id="status">先上传左图和右图（也支持把图片拖拽到画布）。</div>
+          <div class="status" id="status">先上传左图和右图。</div>
         </div>
 
         <div class="toolbar">
@@ -451,7 +379,7 @@
           </details>
         </div>
       </section>
-    </div>
+    </main>
 
     <div id="cropModal" aria-hidden="true">
       <div class="modal-backdrop" id="cropBackdrop"></div>
@@ -779,13 +707,20 @@
         const ready = !!state.left.img && !!state.right.img;
         els.btnDownload.disabled = !ready;
 
-        const empty = !state.left.img && !state.right.img;
+        const missingLeft = !state.left.img;
+        const missingRight = !state.right.img;
+        const empty = missingLeft && missingRight;
         els.dropZone.classList.toggle("is-empty", empty);
+        els.dropZone.dataset.emptyText = "先上传左图与右图（也支持拖拽）";
         els.btnUploadLeft.textContent = state.left.img ? "左图 ✓" : "左图";
         els.btnUploadRight.textContent = state.right.img ? "右图 ✓" : "右图";
         els.status.textContent = ready
-          ? "点击左/右半边选择，拖动调整；需要更精细可点“剪裁”。"
-          : "先上传左图和右图（也支持把图片拖拽到画布）。";
+          ? "点击左右半边选择，拖动调整；需要更精细可点“剪裁”。"
+          : missingLeft && missingRight
+            ? "先上传左图和右图。"
+            : missingLeft
+              ? "还差左图。"
+              : "还差右图。";
       }
 
       async function loadImageFromFile(file) {
