@@ -536,9 +536,9 @@
 
       function getReadabilityBase() {
         // Tuned for "文字叠在底部" 的常见封面视觉。
-        if (state.readability === "max") return { baseStrength: 0.76, start: 0.5 };
-        if (state.readability === "strong") return { baseStrength: 0.62, start: 0.53 };
-        return { baseStrength: 0.48, start: 0.56 };
+        if (state.readability === "max") return { baseStrength: 0.78, start: 0.5, maxStrength: 0.96 };
+        if (state.readability === "strong") return { baseStrength: 0.64, start: 0.53, maxStrength: 0.92 };
+        return { baseStrength: 0.5, start: 0.56, maxStrength: 0.88 };
       }
 
       function render({ applyAutoReadability = true } = {}) {
@@ -600,14 +600,20 @@
         ctx.restore();
 
         // Bottom readability gradient (auto-adjust based on bottom brightness).
-        const { baseStrength, start } = getReadabilityBase();
+        const { baseStrength, start, maxStrength } = getReadabilityBase();
         let strength = baseStrength;
-        const startPx = start * h;
+        let startRatio = start;
+        let startPx = startRatio * h;
         if (applyAutoReadability) {
-          const luma = getBottomLumaEstimate(startPx);
-          const target = 0.34;
-          const extra = clamp((luma - target) / 0.85, 0, 1) * 0.26;
-          strength = clamp(strength + extra, 0, 0.92);
+          const lumaStart = getBottomLumaEstimate(startPx);
+          const lumaDeep = getBottomLumaEstimate(h * 0.78);
+          const luma = (lumaStart * 0.55 + lumaDeep * 0.45);
+          const target = 0.28;
+          const extra = clamp((luma - target) / 0.72, 0, 1);
+          // Apple-style: stronger scrim on bright images, and start slightly higher.
+          strength = clamp(strength + extra * 0.36 + (luma > 0.72 ? 0.06 : 0), 0, maxStrength);
+          startRatio = clamp(startRatio - extra * 0.07, 0.45, 0.66);
+          startPx = startRatio * h;
         }
         const g = ctx.createLinearGradient(0, startPx, 0, h);
         g.addColorStop(0, "rgba(0,0,0,0)");

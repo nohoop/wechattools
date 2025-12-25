@@ -182,6 +182,10 @@
         background: rgba(118, 118, 128, 0.06);
       }
 
+      .seg.three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
       .seg button {
         border: 0;
         padding: 10px 10px;
@@ -266,6 +270,15 @@
             </div>
 
             <div class="field sm-6">
+              <label>标题可读性（底部压暗）</label>
+              <div class="seg three" role="group" aria-label="readability">
+                <button type="button" id="readNormal" aria-pressed="true">自然</button>
+                <button type="button" id="readStrong" aria-pressed="false">加强</button>
+                <button type="button" id="readMax" aria-pressed="false">很强</button>
+              </div>
+            </div>
+
+            <div class="field sm-6">
               <label for="zoom">缩放</label>
               <input id="zoom" type="range" min="0.7" max="1.8" step="0.01" value="1" />
             </div>
@@ -294,6 +307,9 @@
         fileRight: document.getElementById("fileRight"),
         editLeft: document.getElementById("editLeft"),
         editRight: document.getElementById("editRight"),
+        readNormal: document.getElementById("readNormal"),
+        readStrong: document.getElementById("readStrong"),
+        readMax: document.getElementById("readMax"),
         zoom: document.getElementById("zoom"),
         btnCenter: document.getElementById("btnCenter"),
         btnRemove: document.getElementById("btnRemove"),
@@ -307,6 +323,7 @@
         outW: 900,
         outH: 500,
         active: "left",
+        readability: "normal", // normal | strong | max
         dragging: false,
         justDragged: false,
         dragSide: null,
@@ -341,6 +358,32 @@
         const x = (dstW - drawW) / 2;
         const y = (dstH - drawH) / 2;
         return { x, y, w: drawW, h: drawH };
+      }
+
+      function getBottomLumaEstimate(yStart) {
+        const w = els.canvas.width;
+        const h = els.canvas.height;
+        const y = clamp(Math.floor(yStart), 0, h - 1);
+        const hh = clamp(h - y, 1, h);
+        const imageData = ctx.getImageData(0, y, w, hh).data;
+        const stride = Math.max(4, Math.floor((w * hh) / 42000)) * 4;
+        let sum = 0;
+        let count = 0;
+        for (let i = 0; i < imageData.length; i += stride) {
+          const r = imageData[i] / 255;
+          const g = imageData[i + 1] / 255;
+          const b = imageData[i + 2] / 255;
+          sum += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          count += 1;
+        }
+        return count ? sum / count : 0.5;
+      }
+
+      function getReadabilityBase() {
+        // Tuned for "标题压在封面底部" 的视觉；亮图自动增强。
+        if (state.readability === "max") return { baseStrength: 0.78, start: 0.5, maxStrength: 0.96 };
+        if (state.readability === "strong") return { baseStrength: 0.64, start: 0.53, maxStrength: 0.92 };
+        return { baseStrength: 0.5, start: 0.56, maxStrength: 0.88 };
       }
 
       function applyPreset() {
@@ -394,6 +437,27 @@
         ctx.moveTo(half + 0.5, 12);
         ctx.lineTo(half + 0.5, h - 12);
         ctx.stroke();
+
+        // Bottom title-safe scrim (adaptive for bright images).
+        const { baseStrength, start, maxStrength } = getReadabilityBase();
+        let strength = baseStrength;
+        let startRatio = start;
+        let startPx = startRatio * h;
+        if (state.left.img || state.right.img) {
+          const lumaStart = getBottomLumaEstimate(startPx);
+          const lumaDeep = getBottomLumaEstimate(h * 0.78);
+          const luma = lumaStart * 0.55 + lumaDeep * 0.45;
+          const target = 0.28;
+          const extra = clamp((luma - target) / 0.72, 0, 1);
+          strength = clamp(strength + extra * 0.36 + (luma > 0.72 ? 0.06 : 0), 0, maxStrength);
+          startRatio = clamp(startRatio - extra * 0.07, 0.45, 0.66);
+          startPx = startRatio * h;
+        }
+        const g = ctx.createLinearGradient(0, startPx, 0, h);
+        g.addColorStop(0, "rgba(0,0,0,0)");
+        g.addColorStop(1, `rgba(0,0,0,${strength})`);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, startPx, w, h - startPx);
 
         ctx.restore();
       }
@@ -452,6 +516,7 @@
         els.format.value = "image/png";
         els.fileLeft.value = "";
         els.fileRight.value = "";
+        setReadability("normal");
         for (const side of ["left", "right"]) {
           if (state[side].url) URL.revokeObjectURL(state[side].url);
           state[side].img = null;
@@ -531,6 +596,18 @@
       els.editLeft.addEventListener("click", () => setPressed("left"));
       els.editRight.addEventListener("click", () => setPressed("right"));
 
+      function setReadability(mode) {
+        state.readability = mode;
+        els.readNormal.setAttribute("aria-pressed", mode === "normal" ? "true" : "false");
+        els.readStrong.setAttribute("aria-pressed", mode === "strong" ? "true" : "false");
+        els.readMax.setAttribute("aria-pressed", mode === "max" ? "true" : "false");
+        render();
+      }
+
+      els.readNormal.addEventListener("click", () => setReadability("normal"));
+      els.readStrong.addEventListener("click", () => setReadability("strong"));
+      els.readMax.addEventListener("click", () => setReadability("max"));
+
       els.zoom.addEventListener("input", () => {
         const v = clamp(Number(els.zoom.value), 0.7, 1.8);
         state[state.active].zoom = v;
@@ -605,7 +682,7 @@
       window.addEventListener("resize", () => render());
 
       setPressed("left");
-      render();
+      setReadability("normal");
       updateUI();
     </script>
   </body>
