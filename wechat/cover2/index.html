@@ -173,6 +173,103 @@
         width: 100%;
       }
 
+      #cropModal {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        display: none;
+        padding: 18px;
+      }
+
+      #cropModal[aria-hidden="false"] {
+        display: grid;
+        place-items: center;
+      }
+
+      .modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(12px) saturate(150%);
+      }
+
+      .modal {
+        position: relative;
+        width: min(980px, 100%);
+        border-radius: 22px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .modal {
+          background: rgba(22, 22, 24, 0.86);
+          box-shadow: 0 40px 120px rgba(0, 0, 0, 0.72);
+        }
+      }
+
+      .modal-head {
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(118, 118, 128, 0.06);
+      }
+
+      .modal-head strong {
+        font-weight: 750;
+        letter-spacing: -0.2px;
+        font-size: 14px;
+      }
+
+      .modal-body {
+        padding: 14px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .crop-stage {
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: rgba(118, 118, 128, 0.08);
+        overflow: hidden;
+        width: min(860px, 92vw);
+        margin: 0 auto;
+      }
+
+      .crop-stage canvas {
+        width: 100%;
+        height: auto;
+        display: block;
+        touch-action: none;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .modal-actions .left {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .modal-actions label {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+      }
+
       .seg {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -281,19 +378,43 @@
 
             <div class="field sm-6">
               <label for="zoom">缩放</label>
-              <input id="zoom" type="range" min="0.7" max="1.8" step="0.01" value="1" />
+              <input id="zoom" type="range" min="1" max="6" step="0.01" value="1" />
             </div>
 
             <div class="field sm-6">
               <label>快速操作</label>
               <div class="actions">
                 <button class="btn" id="btnCenter" type="button">居中</button>
+                <button class="btn" id="btnCrop" type="button">剪裁</button>
                 <button class="btn" id="btnRemove" type="button">移除当前</button>
               </div>
             </div>
           </div>
         </div>
       </section>
+    </div>
+
+    <div id="cropModal" aria-hidden="true">
+      <div class="modal-backdrop" id="cropBackdrop"></div>
+      <div class="modal" role="dialog" aria-modal="true" aria-label="剪裁图片">
+        <div class="modal-head">
+          <strong>剪裁与缩放</strong>
+          <button class="btn" id="cropCancel" type="button">关闭</button>
+        </div>
+        <div class="modal-body">
+          <div class="crop-stage">
+            <canvas id="cropCanvas" aria-label="crop canvas"></canvas>
+          </div>
+          <div class="modal-actions">
+            <div class="left">
+              <label for="cropZoom">缩放</label>
+              <input id="cropZoom" type="range" min="1" max="6" step="0.01" value="1" />
+              <span class="pill" style="padding: 6px 10px">提示：拖动图片调整裁切（Shift 微调）</span>
+            </div>
+            <button class="btn primary" id="cropApply" type="button">应用到封面</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -314,12 +435,20 @@
         readMax: document.getElementById("readMax"),
         zoom: document.getElementById("zoom"),
         btnCenter: document.getElementById("btnCenter"),
+        btnCrop: document.getElementById("btnCrop"),
         btnRemove: document.getElementById("btnRemove"),
         btnReset: document.getElementById("btnReset"),
         btnDownload: document.getElementById("btnDownload"),
+        cropModal: document.getElementById("cropModal"),
+        cropBackdrop: document.getElementById("cropBackdrop"),
+        cropCanvas: document.getElementById("cropCanvas"),
+        cropZoom: document.getElementById("cropZoom"),
+        cropCancel: document.getElementById("cropCancel"),
+        cropApply: document.getElementById("cropApply"),
       };
 
       const ctx = els.canvas.getContext("2d", { alpha: false, willReadFrequently: true });
+      const cropCtx = els.cropCanvas.getContext("2d", { alpha: false, willReadFrequently: true });
 
       const state = {
         outW: 0,
@@ -334,6 +463,16 @@
         right: { img: null, url: null, offsetX: 0, offsetY: 0, zoom: 1 },
       };
 
+      const cropState = {
+        open: false,
+        side: "left",
+        dragging: false,
+        dragStart: { x: 0, y: 0 },
+        zoom: 1,
+        offsetX: 0,
+        offsetY: 0,
+      };
+
       function clamp(v, min, max) {
         return Math.min(max, Math.max(min, v));
       }
@@ -343,6 +482,114 @@
         els.editLeft.setAttribute("aria-pressed", active === "left" ? "true" : "false");
         els.editRight.setAttribute("aria-pressed", active === "right" ? "true" : "false");
         els.zoom.value = String(state[active].zoom);
+      }
+
+      function drawImageCover(targetCtx, img, dstX, dstY, dstW, dstH, zoom, offsetX, offsetY) {
+        const base = coverRect(img.naturalWidth, img.naturalHeight, dstW, dstH);
+        const z = Math.max(1, zoom || 1);
+        const drawW = base.w * z;
+        const drawH = base.h * z;
+        const x = dstX + (dstW - drawW) / 2 + (offsetX || 0);
+        const y = dstY + (dstH - drawH) / 2 + (offsetY || 0);
+        targetCtx.drawImage(img, x, y, drawW, drawH);
+      }
+
+      function clampSideTransform(side, dstW, dstH) {
+        const s = state[side];
+        if (!s.img) return;
+        s.zoom = Math.max(1, s.zoom || 1);
+        const base = coverRect(s.img.naturalWidth, s.img.naturalHeight, dstW, dstH);
+        const drawW = base.w * s.zoom;
+        const drawH = base.h * s.zoom;
+        const maxX = Math.max(0, (drawW - dstW) / 2);
+        const maxY = Math.max(0, (drawH - dstH) / 2);
+        s.offsetX = clamp(s.offsetX || 0, -maxX, maxX);
+        s.offsetY = clamp(s.offsetY || 0, -maxY, maxY);
+      }
+
+      function clampCropTransform(dstW, dstH) {
+        const img = state[cropState.side].img;
+        if (!img) return;
+        cropState.zoom = Math.max(1, cropState.zoom || 1);
+        const base = coverRect(img.naturalWidth, img.naturalHeight, dstW, dstH);
+        const drawW = base.w * cropState.zoom;
+        const drawH = base.h * cropState.zoom;
+        const maxX = Math.max(0, (drawW - dstW) / 2);
+        const maxY = Math.max(0, (drawH - dstH) / 2);
+        cropState.offsetX = clamp(cropState.offsetX || 0, -maxX, maxX);
+        cropState.offsetY = clamp(cropState.offsetY || 0, -maxY, maxY);
+      }
+
+      function isCropOpen() {
+        return cropState.open;
+      }
+
+      function setCropOpen(nextOpen) {
+        cropState.open = nextOpen;
+        els.cropModal.setAttribute("aria-hidden", nextOpen ? "false" : "true");
+        document.body.style.overflow = nextOpen ? "hidden" : "";
+      }
+
+      function cropCanvasDims() {
+        const aspect = Number(els.preset.value) || 2.35;
+        const sideAspect = aspect / 2;
+        const stage = els.cropCanvas.closest(".crop-stage");
+        if (stage) stage.style.aspectRatio = `${sideAspect} / 1`;
+        const rect = els.cropCanvas.getBoundingClientRect();
+        const cssW = clamp(rect.width || 520, 320, 860);
+        const dpr = window.devicePixelRatio || 1;
+        const outW = Math.round(cssW * dpr * 2);
+        const outH = Math.round(outW / sideAspect);
+        return { outW, outH };
+      }
+
+      function syncCropCanvasSize() {
+        const { outW, outH } = cropCanvasDims();
+        els.cropCanvas.width = outW;
+        els.cropCanvas.height = outH;
+      }
+
+      function renderCrop() {
+        const img = state[cropState.side].img;
+        const w = els.cropCanvas.width;
+        const h = els.cropCanvas.height;
+        cropCtx.save();
+        cropCtx.clearRect(0, 0, w, h);
+        cropCtx.fillStyle = "rgba(118,118,128,0.10)";
+        cropCtx.fillRect(0, 0, w, h);
+        if (img) {
+          clampCropTransform(w, h);
+          drawImageCover(cropCtx, img, 0, 0, w, h, cropState.zoom, cropState.offsetX, cropState.offsetY);
+        }
+        cropCtx.restore();
+      }
+
+      function openCrop() {
+        const side = state.active;
+        if (!state[side].img) return;
+        cropState.side = side;
+        cropState.zoom = state[side].zoom || 1;
+        cropState.offsetX = state[side].offsetX || 0;
+        cropState.offsetY = state[side].offsetY || 0;
+        els.cropZoom.value = String(clamp(cropState.zoom, 1, 6));
+        setCropOpen(true);
+        syncCropCanvasSize();
+        renderCrop();
+      }
+
+      function closeCrop() {
+        setCropOpen(false);
+      }
+
+      function applyCrop() {
+        const side = cropState.side;
+        state[side].zoom = clamp(Number(cropState.zoom) || 1, 1, 6);
+        state[side].offsetX = cropState.offsetX || 0;
+        state[side].offsetY = cropState.offsetY || 0;
+        if (state.active === side) els.zoom.value = String(state[side].zoom);
+        render();
+        updateUI();
+        closeCrop();
       }
 
       function setCanvasSize(w, h) {
@@ -417,13 +664,8 @@
           return;
         }
 
-        const base = coverRect(img.naturalWidth, img.naturalHeight, w0, h);
-        const cx = x0 + w0 / 2;
-        const cy = h / 2;
-        ctx.translate(cx, cy);
-        ctx.scale(s.zoom, s.zoom);
-        ctx.translate(-cx, -cy);
-        ctx.drawImage(img, x0 + base.x + s.offsetX, base.y + s.offsetY, base.w, base.h);
+        clampSideTransform(side, w0, h);
+        drawImageCover(ctx, img, x0, 0, w0, h, s.zoom, s.offsetX, s.offsetY);
         ctx.restore();
       }
 
@@ -579,6 +821,11 @@
         state.dragStart.y = pt.y;
         state[side].offsetX += dx;
         state[side].offsetY += dy;
+        const w = els.canvas.width;
+        const h = els.canvas.height;
+        const half = Math.round(w / 2);
+        const sideW = side === "left" ? half : w - half;
+        clampSideTransform(side, sideW, h);
         render();
       }
 
@@ -621,8 +868,13 @@
       els.readMax.addEventListener("click", () => setReadability("max"));
 
       els.zoom.addEventListener("input", () => {
-        const v = clamp(Number(els.zoom.value), 0.7, 1.8);
+        const v = clamp(Number(els.zoom.value), 1, 6);
         state[state.active].zoom = v;
+        const w = els.canvas.width;
+        const h = els.canvas.height;
+        const half = Math.round(w / 2);
+        const sideW = state.active === "left" ? half : w - half;
+        clampSideTransform(state.active, sideW, h);
         render();
       });
 
@@ -645,7 +897,66 @@
         updateUI();
       });
 
-      els.preset.addEventListener("change", () => render());
+      function eventToCropPoint(e) {
+        const rect = els.cropCanvas.getBoundingClientRect();
+        const scaleX = els.cropCanvas.width / rect.width;
+        const scaleY = els.cropCanvas.height / rect.height;
+        return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+      }
+
+      function onCropPointerDown(e) {
+        if (!isCropOpen()) return;
+        if (!state[cropState.side].img) return;
+        const pt = eventToCropPoint(e);
+        e.preventDefault();
+        els.cropCanvas.setPointerCapture(e.pointerId);
+        cropState.dragging = true;
+        cropState.dragStart.x = pt.x;
+        cropState.dragStart.y = pt.y;
+      }
+
+      function onCropPointerMove(e) {
+        if (!cropState.dragging) return;
+        const pt = eventToCropPoint(e);
+        const fine = e.shiftKey ? 0.35 : 1;
+        const dx = (pt.x - cropState.dragStart.x) * fine;
+        const dy = (pt.y - cropState.dragStart.y) * fine;
+        cropState.dragStart.x = pt.x;
+        cropState.dragStart.y = pt.y;
+        cropState.offsetX += dx;
+        cropState.offsetY += dy;
+        renderCrop();
+      }
+
+      function onCropPointerUp(e) {
+        if (!cropState.dragging) return;
+        cropState.dragging = false;
+        try {
+          els.cropCanvas.releasePointerCapture(e.pointerId);
+        } catch {}
+        renderCrop();
+      }
+
+      els.btnCrop.addEventListener("click", () => openCrop());
+      els.cropBackdrop.addEventListener("click", () => closeCrop());
+      els.cropCancel.addEventListener("click", () => closeCrop());
+      els.cropApply.addEventListener("click", () => applyCrop());
+      els.cropZoom.addEventListener("input", () => {
+        cropState.zoom = clamp(Number(els.cropZoom.value), 1, 6);
+        renderCrop();
+      });
+      els.cropCanvas.addEventListener("pointerdown", onCropPointerDown);
+      els.cropCanvas.addEventListener("pointermove", onCropPointerMove);
+      els.cropCanvas.addEventListener("pointerup", onCropPointerUp);
+      els.cropCanvas.addEventListener("pointercancel", onCropPointerUp);
+
+      els.preset.addEventListener("change", () => {
+        render();
+        if (isCropOpen()) {
+          syncCropCanvasSize();
+          renderCrop();
+        }
+      });
       els.format.addEventListener("change", () => updateUI());
 
       els.btnReset.addEventListener("click", (e) => {
@@ -692,6 +1003,17 @@
       });
 
       window.addEventListener("resize", () => render());
+      window.addEventListener("resize", () => {
+        if (!isCropOpen()) return;
+        syncCropCanvasSize();
+        renderCrop();
+      });
+      window.addEventListener("keydown", (e) => {
+        if (!isCropOpen()) return;
+        if (e.key !== "Escape") return;
+        e.preventDefault();
+        closeCrop();
+      });
 
       setPressed("left");
       setReadability("normal");
