@@ -267,7 +267,8 @@
       <section class="card">
         <div class="preview">
           <div class="meta">
-            <div class="pill">尺寸：<strong id="sizeText">900×383</strong></div>
+            <div class="pill">比例：<strong id="sizeText">2.35:1</strong></div>
+            <div class="pill">导出：<strong id="pxText">—</strong></div>
             <div class="pill">拖动人物调整位置（按住 Shift 微调）</div>
           </div>
           <div class="canvas-wrap is-empty" id="dropZone" role="button" tabindex="0" aria-label="预览区：点击上传图片，或拖拽图片到这里">
@@ -284,11 +285,11 @@
             </div>
 
             <div class="field sm-6">
-              <label for="preset">封面尺寸</label>
+              <label for="preset">封面比例</label>
               <select id="preset">
-                <option value="900x383" selected>微信公众号：900×383（推荐）</option>
-                <option value="1000x420">2.38:1：1000×420</option>
-                <option value="1280x720">16:9：1280×720</option>
+                <option value="2.35" selected>微信公众号头条：2.35:1（消息列表）</option>
+                <option value="1">1:1（转发卡片/主页）</option>
+                <option value="1.7777777778">16:9</option>
               </select>
             </div>
 
@@ -336,6 +337,7 @@
         btnReset: document.getElementById("btnReset"),
         btnDownload: document.getElementById("btnDownload"),
         sizeText: document.getElementById("sizeText"),
+        pxText: document.getElementById("pxText"),
         status: document.getElementById("status"),
         canvas: document.getElementById("c"),
         dropZone: document.getElementById("dropZone"),
@@ -360,8 +362,8 @@
       const state = {
         image: null,
         objectUrl: null,
-        outW: 900,
-        outH: 383,
+        outW: 0,
+        outH: 0,
         style: "solid", // auto | solid | clear
         readability: "normal", // normal | strong | max
         pos: "center", // left | center | right
@@ -387,7 +389,10 @@
         state.outH = height;
         els.canvas.width = width;
         els.canvas.height = height;
-        els.sizeText.textContent = `${width}×${height}`;
+        const aspect = Number(els.preset.value) || width / Math.max(1, height);
+        const aspectText = aspect.toFixed(2).replace(/\.00$/, "");
+        els.sizeText.textContent = `${aspectText}:1`;
+        els.pxText.textContent = `${width}×${height}`;
       }
 
       function coverRect(imgW, imgH, dstW, dstH) {
@@ -655,8 +660,13 @@
       }
 
       function applyPreset() {
-        const [w, h] = els.preset.value.split("x").map((v) => Number(v));
-        setCanvasSize(w, h);
+        const aspect = Number(els.preset.value) || 2.35;
+        const wrap = els.dropZone.getBoundingClientRect();
+        const cssW = clamp(wrap.width || 360, 300, 720);
+        const dpr = window.devicePixelRatio || 1;
+        const outW = Math.round(cssW * dpr * 2);
+        const outH = Math.round(outW / aspect);
+        setCanvasSize(outW, outH);
       }
 
       function syncAndRender({ applyAutoReadability = true } = {}) {
@@ -669,7 +679,9 @@
         if (!state.image) return;
         const format = els.format.value;
         const ext = format === "image/jpeg" ? "jpg" : "png";
-        const name = `wechat-cover-${state.outW}x${state.outH}.${ext}`;
+        const aspect = Number(els.preset.value) || state.outW / Math.max(1, state.outH);
+        const aspectText = aspect.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+        const name = `wechat-cover-${aspectText}-${state.outW}x${state.outH}.${ext}`;
         const url = els.canvas.toDataURL(format, format === "image/jpeg" ? 0.92 : undefined);
         const a = document.createElement("a");
         a.href = url;
@@ -680,7 +692,7 @@
       }
 
       function reset() {
-        els.preset.value = "900x383";
+        els.preset.value = "2.35";
         els.format.value = "image/png";
         els.bgColor.value = "#111111";
         state.style = "solid";
@@ -815,7 +827,7 @@
       els.canvas.addEventListener("pointermove", onPointerMove);
       els.canvas.addEventListener("pointerup", onPointerUp);
       els.canvas.addEventListener("pointercancel", onPointerUp);
-      window.addEventListener("resize", () => render({ applyAutoReadability: false }));
+      window.addEventListener("resize", () => syncAndRender({ applyAutoReadability: false }));
 
       function hookSeg() {
         // Style

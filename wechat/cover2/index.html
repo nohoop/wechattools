@@ -224,7 +224,8 @@
       <section class="card" aria-label="拼图画布">
         <div class="preview">
           <div class="meta">
-            <div class="pill">尺寸：<strong id="sizeText">900×500</strong></div>
+            <div class="pill">比例：<strong id="sizeText">2.35:1</strong></div>
+            <div class="pill">导出：<strong id="pxText">—</strong></div>
             <div class="pill">拖动调整位置（按住 Shift 微调）</div>
           </div>
 
@@ -253,11 +254,11 @@
             </div>
 
             <div class="field sm-6">
-              <label for="preset">封面尺寸</label>
+              <label for="preset">封面比例</label>
               <select id="preset">
-                <option value="900x500" selected>900×500（推荐）</option>
-                <option value="900x383">微信公众号：900×383</option>
-                <option value="1000x420">2.38:1：1000×420</option>
+                <option value="2.35" selected>微信公众号头条：2.35:1（消息列表）</option>
+                <option value="1">1:1（转发卡片/主页）</option>
+                <option value="1.7777777778">16:9</option>
               </select>
             </div>
 
@@ -301,6 +302,7 @@
         dropZone: document.getElementById("dropZone"),
         status: document.getElementById("status"),
         sizeText: document.getElementById("sizeText"),
+        pxText: document.getElementById("pxText"),
         format: document.getElementById("format"),
         preset: document.getElementById("preset"),
         fileLeft: document.getElementById("fileLeft"),
@@ -320,8 +322,8 @@
       const ctx = els.canvas.getContext("2d", { alpha: false, willReadFrequently: true });
 
       const state = {
-        outW: 900,
-        outH: 500,
+        outW: 0,
+        outH: 0,
         active: "left",
         readability: "normal", // normal | strong | max
         dragging: false,
@@ -348,7 +350,10 @@
         state.outH = h;
         els.canvas.width = w;
         els.canvas.height = h;
-        els.sizeText.textContent = `${w}×${h}`;
+        const aspect = Number(els.preset.value) || w / Math.max(1, h);
+        const aspectText = aspect.toFixed(2).replace(/\.00$/, "");
+        els.sizeText.textContent = `${aspectText}:1`;
+        els.pxText.textContent = `${w}×${h}`;
       }
 
       function coverRect(imgW, imgH, dstW, dstH) {
@@ -387,8 +392,13 @@
       }
 
       function applyPreset() {
-        const [w, h] = els.preset.value.split("x").map((v) => Number(v));
-        setCanvasSize(w, h);
+        const aspect = Number(els.preset.value) || 2.35;
+        const wrap = els.dropZone.getBoundingClientRect();
+        const cssW = clamp(wrap.width || 360, 300, 760);
+        const dpr = window.devicePixelRatio || 1;
+        const outW = Math.round(cssW * dpr * 2);
+        const outH = Math.round(outW / aspect);
+        setCanvasSize(outW, outH);
       }
 
       function drawSide(side, x0, w0) {
@@ -501,7 +511,9 @@
         if (!state.left.img || !state.right.img) return;
         const format = els.format.value;
         const ext = format === "image/jpeg" ? "jpg" : "png";
-        const name = `wechat-stitch-${state.outW}x${state.outH}.${ext}`;
+        const aspect = Number(els.preset.value) || state.outW / Math.max(1, state.outH);
+        const aspectText = aspect.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+        const name = `wechat-stitch-${aspectText}-${state.outW}x${state.outH}.${ext}`;
         const url = els.canvas.toDataURL(format, format === "image/jpeg" ? 0.92 : undefined);
         const a = document.createElement("a");
         a.href = url;
@@ -512,7 +524,7 @@
       }
 
       function reset() {
-        els.preset.value = "900x500";
+        els.preset.value = "2.35";
         els.format.value = "image/png";
         els.fileLeft.value = "";
         els.fileRight.value = "";
