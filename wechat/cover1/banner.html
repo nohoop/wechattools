@@ -75,6 +75,12 @@
         justify-content: flex-end;
       }
 
+      .actions .btn {
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+
       .card {
         background: var(--card);
         border: 1px solid var(--border);
@@ -84,12 +90,48 @@
       }
 
       .toolbar {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
         padding: 12px;
         border-top: 1px solid var(--border);
         background: rgba(118, 118, 128, 0.05);
+      }
+
+      details.advanced {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: rgba(118, 118, 128, 0.05);
+        overflow: hidden;
+      }
+
+      details.advanced > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 12px 12px;
+        font-weight: 700;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      details.advanced > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      details.advanced > summary::after {
+        content: "展开";
+        color: var(--muted);
+        font-weight: 650;
+        font-size: 12px;
+      }
+
+      details.advanced[open] > summary::after {
+        content: "收起";
+      }
+
+      .advanced-body {
+        border-top: 1px solid var(--border);
+        padding: 12px;
       }
 
       .grid {
@@ -203,7 +245,7 @@
         overflow: hidden;
         border: 1px solid var(--border);
         background: rgba(118, 118, 128, 0.08);
-        width: min(380px, 100%);
+        width: min(520px, 100%);
         margin: 0 auto;
         position: relative;
       }
@@ -252,14 +294,10 @@
       <header>
         <div>
           <h1>公众号封面图（竖图转横图）</h1>
-          <p class="sub">上传人物竖图 → 自动补齐左右背景，并在底部压暗，方便叠加标题文字。</p>
+          <p class="sub">上传竖图 → 拖动调整 → 下载（默认 2.35:1）。</p>
         </div>
         <div class="actions">
-          <select id="format" aria-label="下载格式">
-            <option value="image/png" selected>PNG</option>
-            <option value="image/jpeg">JPG</option>
-          </select>
-          <button class="btn" id="btnReset" type="button">重置</button>
+          <button class="btn" id="btnUpload" type="button">上传</button>
           <button class="btn primary" id="btnDownload" type="button" disabled>下载</button>
         </div>
       </header>
@@ -268,8 +306,7 @@
         <div class="preview">
           <div class="meta">
             <div class="pill">比例：<strong id="sizeText">2.35:1</strong></div>
-            <div class="pill">导出：<strong id="pxText">—</strong></div>
-            <div class="pill">拖动人物调整位置（按住 Shift 微调）</div>
+            <div class="pill">拖动调整（Shift 微调）</div>
           </div>
           <div class="canvas-wrap is-empty" id="dropZone" role="button" tabindex="0" aria-label="预览区：点击上传图片，或拖拽图片到这里">
             <canvas id="c" width="900" height="383" aria-label="preview canvas"></canvas>
@@ -278,53 +315,67 @@
         </div>
 
         <div class="toolbar">
-          <div class="grid">
-            <div class="field sm-6">
-              <label for="file">上传图片</label>
-              <input id="file" type="file" accept="image/*" />
-            </div>
+          <input id="file" type="file" accept="image/*" hidden />
+          <details class="advanced">
+            <summary>更多设置</summary>
+            <div class="advanced-body">
+              <div class="grid">
+                <div class="field sm-6">
+                  <label for="format">下载格式</label>
+                  <select id="format" aria-label="下载格式">
+                    <option value="image/png" selected>PNG</option>
+                    <option value="image/jpeg">JPG</option>
+                  </select>
+                </div>
 
-            <div class="field sm-6">
-              <label for="preset">封面比例</label>
-              <select id="preset">
-                <option value="2.35" selected>微信公众号头条：2.35:1（消息列表）</option>
-                <option value="1">1:1（转发卡片/主页）</option>
-                <option value="1.7777777778">16:9</option>
-              </select>
-            </div>
+                <div class="field sm-6">
+                  <label for="preset">封面比例</label>
+                  <select id="preset">
+                    <option value="2.35" selected>2.35:1（消息列表）</option>
+                    <option value="1">1:1（转发卡片/主页）</option>
+                    <option value="1.7777777778">16:9</option>
+                  </select>
+                </div>
 
-            <div class="field sm-6">
-              <label>风格</label>
-              <div class="seg" role="group" aria-label="style">
-                <button type="button" id="styleAuto" aria-pressed="false">自动</button>
-                <button type="button" id="styleSolid" aria-pressed="true">纯色</button>
-                <button type="button" id="styleClear" aria-pressed="false">清爽</button>
+                <div class="field sm-6">
+                  <label>人物位置</label>
+                  <div class="seg" role="group" aria-label="subject position">
+                    <button type="button" id="posLeft" aria-pressed="false">偏左</button>
+                    <button type="button" id="posCenter" aria-pressed="true">居中</button>
+                    <button type="button" id="posRight" aria-pressed="false">偏右</button>
+                  </div>
+                </div>
+
+                <div class="field sm-6">
+                  <label>标题可读性（底部压暗）</label>
+                  <div class="seg" role="group" aria-label="readability">
+                    <button type="button" id="readNormal" aria-pressed="true">自然</button>
+                    <button type="button" id="readStrong" aria-pressed="false">加强</button>
+                    <button type="button" id="readMax" aria-pressed="false">很强</button>
+                  </div>
+                </div>
+
+                <div class="field sm-6">
+                  <label>背景风格</label>
+                  <div class="seg" role="group" aria-label="style">
+                    <button type="button" id="styleAuto" aria-pressed="false">自动</button>
+                    <button type="button" id="styleSolid" aria-pressed="true">纯色</button>
+                    <button type="button" id="styleClear" aria-pressed="false">清爽</button>
+                  </div>
+                </div>
+
+                <div class="field sm-6" id="bgColorField" style="display: none">
+                  <label for="bgColor">背景色</label>
+                  <input id="bgColor" type="color" value="#111111" />
+                </div>
+
+                <div class="field sm-6">
+                  <label>重置</label>
+                  <button class="btn" id="btnReset" type="button">重置</button>
+                </div>
               </div>
             </div>
-
-            <div class="field sm-6">
-              <label>文字可读性（底部压暗）</label>
-              <div class="seg" role="group" aria-label="readability">
-                <button type="button" id="readNormal" aria-pressed="true">自然</button>
-                <button type="button" id="readStrong" aria-pressed="false">加强</button>
-                <button type="button" id="readMax" aria-pressed="false">很强</button>
-              </div>
-            </div>
-
-            <div class="field sm-6">
-              <label>人物位置</label>
-              <div class="seg" role="group" aria-label="subject position">
-                <button type="button" id="posLeft" aria-pressed="false">偏左</button>
-                <button type="button" id="posCenter" aria-pressed="true">居中</button>
-                <button type="button" id="posRight" aria-pressed="false">偏右</button>
-              </div>
-            </div>
-
-            <div class="field sm-6" id="bgColorField" style="display: none">
-              <label for="bgColor">背景色</label>
-              <input id="bgColor" type="color" value="#111111" />
-            </div>
-          </div>
+          </details>
         </div>
       </section>
     </div>
@@ -335,9 +386,9 @@
         preset: document.getElementById("preset"),
         format: document.getElementById("format"),
         btnReset: document.getElementById("btnReset"),
+        btnUpload: document.getElementById("btnUpload"),
         btnDownload: document.getElementById("btnDownload"),
         sizeText: document.getElementById("sizeText"),
-        pxText: document.getElementById("pxText"),
         status: document.getElementById("status"),
         canvas: document.getElementById("c"),
         dropZone: document.getElementById("dropZone"),
@@ -392,7 +443,6 @@
         const aspect = Number(els.preset.value) || width / Math.max(1, height);
         const aspectText = aspect.toFixed(2).replace(/\.00$/, "");
         els.sizeText.textContent = `${aspectText}:1`;
-        els.pxText.textContent = `${width}×${height}`;
       }
 
       function coverRect(imgW, imgH, dstW, dstH) {
@@ -775,6 +825,8 @@
           els.status.textContent = "图片加载失败，请换一张试试。";
         }
       });
+
+      els.btnUpload.addEventListener("click", () => els.file.click());
 
       els.dropZone.addEventListener("dragover", (e) => {
         e.preventDefault();

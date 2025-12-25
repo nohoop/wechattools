@@ -36,6 +36,12 @@
         justify-content: flex-end;
       }
 
+      .actions .btn {
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+
       select {
         width: 100%;
         padding: 10px 12px;
@@ -98,7 +104,7 @@
         overflow: hidden;
         border: 1px solid var(--border);
         background: rgba(118, 118, 128, 0.08);
-        width: min(420px, 100%);
+        width: min(560px, 100%);
         margin: 0 auto;
         position: relative;
         cursor: grab;
@@ -131,12 +137,57 @@
       }
 
       .toolbar {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
         padding: 12px;
         border-top: 1px solid var(--border);
         background: rgba(118, 118, 128, 0.05);
+      }
+
+      .quick {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+      }
+
+      details.advanced {
+        margin-top: 10px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: rgba(118, 118, 128, 0.05);
+        overflow: hidden;
+      }
+
+      details.advanced > summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 12px 12px;
+        font-weight: 700;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      details.advanced > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      details.advanced > summary::after {
+        content: "展开";
+        color: var(--muted);
+        font-weight: 650;
+        font-size: 12px;
+      }
+
+      details.advanced[open] > summary::after {
+        content: "收起";
+      }
+
+      .advanced-body {
+        border-top: 1px solid var(--border);
+        padding: 12px;
       }
 
       .grid {
@@ -306,14 +357,11 @@
       <div class="page-head">
         <div>
           <h1>封面拼图工具</h1>
-          <p class="sub">上传两张图 → 自动填满左右两半 → 拖动微调 → 一键导出。</p>
+          <p class="sub">上传两张图 → 点击左右半边调整 → 下载（默认 2.35:1）。</p>
         </div>
         <div class="actions">
-          <select id="format" aria-label="下载格式">
-            <option value="image/png" selected>PNG</option>
-            <option value="image/jpeg">JPG</option>
-          </select>
-          <button class="btn" id="btnReset" type="button">重置</button>
+          <button class="btn" id="btnUploadLeft" type="button">左图</button>
+          <button class="btn" id="btnUploadRight" type="button">右图</button>
           <button class="btn primary" id="btnDownload" type="button" disabled>下载</button>
         </div>
       </div>
@@ -340,56 +388,67 @@
         </div>
 
         <div class="toolbar">
-          <div class="grid">
-            <div class="field sm-6">
-              <label for="fileLeft">左图</label>
-              <input id="fileLeft" type="file" accept="image/*" />
-            </div>
-            <div class="field sm-6">
-              <label for="fileRight">右图</label>
-              <input id="fileRight" type="file" accept="image/*" />
-            </div>
+          <input id="fileLeft" type="file" accept="image/*" hidden />
+          <input id="fileRight" type="file" accept="image/*" hidden />
 
-            <div class="field sm-6">
-              <label for="preset">封面比例</label>
-              <select id="preset">
-                <option value="2.35" selected>微信公众号头条：2.35:1（消息列表）</option>
-                <option value="1">1:1（转发卡片/主页）</option>
-                <option value="1.7777777778">16:9</option>
-              </select>
-            </div>
-
-            <div class="field sm-6">
-              <label>当前调整</label>
-              <div class="seg" role="group" aria-label="active side">
-                <button type="button" id="editLeft" aria-pressed="true">左图</button>
-                <button type="button" id="editRight" aria-pressed="false">右图</button>
-              </div>
-            </div>
-
-            <div class="field sm-6">
-              <label>标题可读性（底部压暗）</label>
-              <div class="seg three" role="group" aria-label="readability">
-                <button type="button" id="readNormal" aria-pressed="true">自然</button>
-                <button type="button" id="readStrong" aria-pressed="false">加强</button>
-                <button type="button" id="readMax" aria-pressed="false">很强</button>
-              </div>
-            </div>
-
-            <div class="field sm-6">
-              <label for="zoom">缩放</label>
-              <input id="zoom" type="range" min="1" max="6" step="0.01" value="1" />
-            </div>
-
-            <div class="field sm-6">
-              <label>快速操作</label>
-              <div class="actions">
-                <button class="btn" id="btnCenter" type="button">居中</button>
-                <button class="btn" id="btnCrop" type="button">剪裁</button>
-                <button class="btn" id="btnRemove" type="button">移除当前</button>
-              </div>
-            </div>
+          <div class="quick">
+            <button class="btn" id="btnCrop" type="button">剪裁</button>
+            <button class="btn" id="btnReset" type="button">重置</button>
           </div>
+
+          <details class="advanced">
+            <summary>更多设置</summary>
+            <div class="advanced-body">
+              <div class="grid">
+                <div class="field sm-6">
+                  <label for="format">下载格式</label>
+                  <select id="format" aria-label="下载格式">
+                    <option value="image/png" selected>PNG</option>
+                    <option value="image/jpeg">JPG</option>
+                  </select>
+                </div>
+
+                <div class="field sm-6">
+                  <label for="preset">封面比例</label>
+                  <select id="preset">
+                    <option value="2.35" selected>2.35:1（消息列表）</option>
+                    <option value="1">1:1（转发卡片/主页）</option>
+                    <option value="1.7777777778">16:9</option>
+                  </select>
+                </div>
+
+                <div class="field sm-6">
+                  <label>当前调整</label>
+                  <div class="seg" role="group" aria-label="active side">
+                    <button type="button" id="editLeft" aria-pressed="true">左图</button>
+                    <button type="button" id="editRight" aria-pressed="false">右图</button>
+                  </div>
+                </div>
+
+                <div class="field sm-6">
+                  <label>标题可读性（底部压暗）</label>
+                  <div class="seg three" role="group" aria-label="readability">
+                    <button type="button" id="readNormal" aria-pressed="true">自然</button>
+                    <button type="button" id="readStrong" aria-pressed="false">加强</button>
+                    <button type="button" id="readMax" aria-pressed="false">很强</button>
+                  </div>
+                </div>
+
+                <div class="field sm-6">
+                  <label for="zoom">缩放</label>
+                  <input id="zoom" type="range" min="1" max="6" step="0.01" value="1" />
+                </div>
+
+                <div class="field sm-6">
+                  <label>当前半边</label>
+                  <div class="actions">
+                    <button class="btn" id="btnCenter" type="button">居中</button>
+                    <button class="btn" id="btnRemove" type="button">移除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
         </div>
       </section>
     </div>
@@ -428,6 +487,8 @@
         preset: document.getElementById("preset"),
         fileLeft: document.getElementById("fileLeft"),
         fileRight: document.getElementById("fileRight"),
+        btnUploadLeft: document.getElementById("btnUploadLeft"),
+        btnUploadRight: document.getElementById("btnUploadRight"),
         editLeft: document.getElementById("editLeft"),
         editRight: document.getElementById("editRight"),
         readNormal: document.getElementById("readNormal"),
@@ -720,8 +781,10 @@
 
         const empty = !state.left.img && !state.right.img;
         els.dropZone.classList.toggle("is-empty", empty);
+        els.btnUploadLeft.textContent = state.left.img ? "左图 ✓" : "左图";
+        els.btnUploadRight.textContent = state.right.img ? "右图 ✓" : "右图";
         els.status.textContent = ready
-          ? "拖动调整位置，满意后点击下载。"
+          ? "点击左/右半边选择，拖动调整；需要更精细可点“剪裁”。"
           : "先上传左图和右图（也支持把图片拖拽到画布）。";
       }
 
@@ -841,6 +904,9 @@
       }
 
       // Events
+      els.btnUploadLeft.addEventListener("click", () => els.fileLeft.click());
+      els.btnUploadRight.addEventListener("click", () => els.fileRight.click());
+
       els.fileLeft.addEventListener("change", async () => {
         const file = els.fileLeft.files && els.fileLeft.files[0];
         if (!file) return;
